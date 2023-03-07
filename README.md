@@ -28,6 +28,16 @@ Precompiled binaries are available from the [GitHub releases page](https://githu
 
 You can find an overview over the features available in Alacritty [here](./docs/features.md).
 
+### Image preview nonsense
+<details>
+<summary>show</summary>
+
+
+https://user-images.githubusercontent.com/88032359/223545649-fd6cf314-f208-41c7-83dc-131eb5f3ad6b.mp4
+
+
+</details>
+
 ## Further information
 
 - [Announcing Alacritty, a GPU-Accelerated Terminal Emulator](https://jwilm.io/blog/announcing-alacritty/) January 6, 2017
