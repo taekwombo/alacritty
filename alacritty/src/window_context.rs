@@ -47,6 +47,8 @@ use crate::logging::LOG_TARGET_IPC_CONFIG;
 use crate::message_bar::MessageBuffer;
 use crate::scheduler::Scheduler;
 use crate::{input, renderer};
+#[cfg(feature = "takeover")]
+use crate::takeover::Takeover;
 
 /// Event context for one individual Alacritty window.
 pub struct WindowContext {
@@ -72,6 +74,8 @@ pub struct WindowContext {
     shell_pid: u32,
     ipc_config: Vec<(String, serde_yaml::Value)>,
     config: Rc<UiConfig>,
+    #[cfg(feature = "takeover")]
+    takeover: Takeover,
 }
 
 impl WindowContext {
@@ -259,6 +263,8 @@ impl WindowContext {
             touch: Default::default(),
             dirty: Default::default(),
             occluded: Default::default(),
+            #[cfg(feature = "takeover")]
+            takeover: Default::default(),
         })
     }
 
@@ -454,6 +460,8 @@ impl WindowContext {
             shell_pid: self.shell_pid,
             preserve_title: self.preserve_title,
             config: &self.config,
+            #[cfg(feature = "takeover")]
+            takeover: &mut self.takeover,
             event_proxy,
             event_loop,
             clipboard,
@@ -499,6 +507,13 @@ impl WindowContext {
             self.display.process_renderer_update();
 
             self.dirty = false;
+
+            // TODO: Redraw here.
+            #[cfg(feature = "takeover")]
+            if self.takeover.active {
+                self.display.draw_takeover(&mut self.takeover, &self.config);
+                return;
+            }
 
             // Request immediate re-draw if visual bell animation is not finished yet.
             if !self.display.visual_bell.completed() {

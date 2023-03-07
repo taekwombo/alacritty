@@ -14,6 +14,8 @@ use alacritty_terminal::thread;
 
 use crate::cli::{Options, SocketMessage};
 use crate::event::{Event, EventType};
+#[cfg(feature = "takeover")]
+use crate::takeover::TakeoverEvent;
 
 /// Environment variable name for the IPC socket path.
 const ALACRITTY_SOCKET_ENV: &str = "ALACRITTY_SOCKET";
@@ -70,6 +72,24 @@ pub fn spawn_ipc_socket(options: &Options, event_proxy: EventLoopProxy<Event>) -
                         .map(WindowId::from);
                     let event = Event::new(EventType::IpcConfig(ipc_config), window_id);
                     let _ = event_proxy.send_event(event);
+                },
+                #[cfg(feature = "takeover")]
+                SocketMessage::Takeover(takeover) => {
+                    // TODO: Add validation of the arguments to the TakeoverEvent::try_from.
+                    //       For example: all non-image files should be rejected before an attemp
+                    //       to decode them.
+                    let options = u64::try_from(takeover.window_id)
+                        .map(WindowId::from)
+                        .ok()
+                        .and_then(|id|
+                            TakeoverEvent::try_from(takeover.msg.as_ref())
+                                .map(|event| (event, id))
+                                .ok()
+                        );
+
+                    if let Some((event, window_id)) = options {
+                        let _ = event_proxy.send_event(Event::new(EventType::Takeover(event), window_id));
+                    }
                 },
             }
         }

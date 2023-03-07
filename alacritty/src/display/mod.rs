@@ -754,6 +754,21 @@ impl Display {
         self.damage_highlighted_hints(terminal);
     }
 
+    #[cfg(feature = "takeover")]
+    pub fn draw_takeover(&mut self, takeover: &mut crate::takeover::Takeover, config: &UiConfig) {
+        // let size_info = self.size_info;
+        // let metrics = self.glyph_cache.font_metrics();
+        let background_color = config.colors.primary.background;
+
+        self.make_current();
+        self.renderer.clear(background_color, config.window_opacity());
+        takeover.render();
+        self.swap_buffers();
+
+        // TODO: Add a way to disable takeover by handling ESC keypress.
+        // TODO: Clear the screen with background color when takeover is active.
+    }
+
     /// Draw the screen.
     ///
     /// A reference to Term whose state is being drawn must be provided.

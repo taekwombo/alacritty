@@ -41,6 +41,7 @@ unicode-width = "0.1"
 bitflags = "1"
 dirs = "4.0.0"
 once_cell = "1.12"
+image = { optional = true, version = "0.24.5" }
 
 [build-dependencies]
 gl_generator = "0.14.0"
@@ -91,3 +92,4 @@ wayland = [
     "winit/wayland-csd-adwaita-crossfont",
     "wayland-client"]
 nightly = []
+takeover = ["dep:image"]

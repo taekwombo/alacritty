@@ -58,6 +58,9 @@ use crate::message_bar::{Message, MessageBuffer};
 use crate::scheduler::{Scheduler, TimerId, Topic};
 use crate::window_context::WindowContext;
 
+#[cfg(feature = "takeover")]
+use crate::takeover::{Takeover, TakeoverEvent};
+
 /// Duration after the last user input until an unlimited search is performed.
 pub const TYPING_SEARCH_DELAY: Duration = Duration::from_millis(500);
 
@@ -103,6 +106,8 @@ pub enum EventType {
     CreateWindow(WindowOptions),
     #[cfg(unix)]
     IpcConfig(IpcConfig),
+    #[cfg(feature = "takeover")]
+    Takeover(TakeoverEvent),
     BlinkCursor,
     BlinkCursorTimeout,
     SearchNext,
@@ -206,6 +211,8 @@ pub struct ActionContext<'a, N, T> {
     pub dirty: &'a mut bool,
     pub occluded: &'a mut bool,
     pub preserve_title: bool,
+    #[cfg(feature = "takeover")]
+    pub takeover: &'a mut Takeover,
     #[cfg(not(windows))]
     pub master_fd: RawFd,
     #[cfg(not(windows))]
@@ -1269,9 +1276,20 @@ impl input::Processor<EventProxy, ActionContext<'_, Notifier, EventProxy>> {
                 EventType::IpcConfig(_) => (),
                 EventType::ConfigReload(_) | EventType::CreateWindow(_) | EventType::Message(_) => {
                 },
+                #[cfg(feature = "takeover")]
+                EventType::Takeover(event) => {
+                    self.ctx.takeover.update(event, &self.ctx.display);
+                },
             },
             WinitEvent::RedrawRequested(_) => *self.ctx.dirty = true,
             WinitEvent::WindowEvent { event, .. } => {
+                #[cfg(feature = "takeover")]
+                if self.ctx.takeover.active {
+                    // Handle all window events for takeover.
+                    // Especially exiting takeover mode.
+                    self.ctx.takeover.handle_window_event(&event, self.ctx.display, self.ctx.modifiers);
+                }
+
                 match event {
                     WindowEvent::CloseRequested => self.ctx.terminal.exit(),
                     WindowEvent::Resized(size) => {
@@ -1285,10 +1303,24 @@ impl input::Processor<EventProxy, ActionContext<'_, Notifier, EventProxy>> {
                         self.ctx.display.pending_update.set_dimensions(size);
                     },
                     WindowEvent::KeyboardInput { input, is_synthetic: false, .. } => {
+                        #[cfg(feature = "takeover")]
+                        if !self.ctx.takeover.active {
+                            // Process key input only when takeover mode is disabled.
+                            self.key_input(input);
+                        }
+                        #[cfg(not(feature = "takeover"))]
                         self.key_input(input);
                     },
                     WindowEvent::ModifiersChanged(modifiers) => self.modifiers_input(modifiers),
-                    WindowEvent::ReceivedCharacter(c) => self.received_char(c),
+                    WindowEvent::ReceivedCharacter(c) => {
+                        #[cfg(feature = "takeover")]
+                        if !self.ctx.takeover.active {
+                            // Process character input only when takeover mode is disabled.
+                            self.received_char(c);
+                        }
+                        #[cfg(not(feature = "takeover"))]
+                        self.received_char(c);
+                    },
                     WindowEvent::MouseInput { state, button, .. } => {
                         self.ctx.window().set_mouse_visible(true);
                         self.mouse_input(state, button);

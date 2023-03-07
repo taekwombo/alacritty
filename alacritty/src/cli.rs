@@ -287,6 +287,10 @@ pub enum SocketMessage {
 
     /// Update the Alacritty configuration.
     Config(IpcConfig),
+
+    /// Send takeover message.
+    #[cfg(feature = "takeover")]
+    Takeover(Takeover),
 }
 
 /// Subset of options that we pass to 'create-window' IPC subcommand.
@@ -318,6 +322,17 @@ pub struct IpcConfig {
     /// Clear all runtime configuration changes.
     #[clap(short, long, conflicts_with = "options")]
     pub reset: bool,
+}
+
+/// Message for the takeover feature.
+#[cfg(feature = "takeover")]
+#[derive(Args, Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
+pub struct Takeover {
+    #[clap(required = true)]
+    pub msg: String,
+
+    #[clap(required = true, short, long, allow_hyphen_values = true, env = "ALACRITTY_WINDOW_ID")]
+    pub window_id: u128,
 }
 
 #[cfg(test)]

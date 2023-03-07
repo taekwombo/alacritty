@@ -48,6 +48,8 @@ mod renderer;
 mod scheduler;
 mod string;
 mod window_context;
+#[cfg(feature = "takeover")]
+mod takeover;
 
 mod gl {
     #![allow(clippy::all)]
